@@ -13,6 +13,9 @@ char g_sHostPort[6];
 char g_sServerName[256];
 char g_sHostIP[16];
 
+const char[][] keywords = { "hack", "exploit", "grief", "ahk", "wall", "cheat", "aimbot" };
+
+
 ConVar g_cBotName = null;
 ConVar g_cClaimMsg = null;
 ConVar g_cColor = null;
@@ -90,160 +93,208 @@ public void CallAdmin_OnServerDataChanged(ConVar convar, ServerData type, const 
 
 public Action Cmd_Claim(int client, int args)
 {
-	char sName[(MAX_NAME_LENGTH + 1) * 2];
-	char clientAuth[21];
-	char clientAuth64[32];
-	
-	if (client == 0)
-	{
-		strcopy(sName, sizeof(sName), "CONSOLE");
-	}
-	else
-	{
-		GetClientAuthId(client, AuthId_Steam2, clientAuth, sizeof(clientAuth));
-		GetClientAuthId(client, AuthId_SteamID64, clientAuth64, sizeof(clientAuth64));
-		GetClientName(client, sName, sizeof(sName));
-		Discord_EscapeString(sName, sizeof(sName));
-	}
-	
-	char sRemove[64];
-	g_cRemove.GetString(sRemove, sizeof(sRemove));
-	ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
-	
-	g_cRemove2.GetString(sRemove, sizeof(sRemove));
-	ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
-	
-	Discord_EscapeString(g_sServerName, sizeof(g_sServerName));
-	
-	char sClaimMsg[512];
-	g_cClaimMsg.GetString(sClaimMsg, sizeof(sClaimMsg));
-	
-	Discord_EscapeString(sClaimMsg, sizeof(sClaimMsg));
-	
-	char sBot[512];
-	g_cBotName.GetString(sBot, sizeof(sBot));
-	
-	char sColor[8];
-	g_cColor2.GetString(sColor, sizeof(sColor));
+    char sName[(MAX_NAME_LENGTH + 1) * 2];
+    char clientAuth[21];
+    char clientAuth64[32];
 
-	int gettime = GetTime();
-	char szTimestamp[64]; IntToString(gettime, szTimestamp, sizeof(szTimestamp));
-	
-	char sMSG[512] = CLAIM_MSG;
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{BOTNAME}", sBot);
-	ReplaceString(sMSG, sizeof(sMSG), "{COLOR}", sColor);
-	ReplaceString(sMSG, sizeof(sMSG), "{ADMIN}", sName);
-	ReplaceString(sMSG, sizeof(sMSG), "{ADMIN_ID}", clientAuth);
-	ReplaceString(sMSG, sizeof(sMSG), "{ADMIN_ID64}", clientAuth64);
-	ReplaceString(sMSG, sizeof(sMSG), "{MSG}", sClaimMsg);
-	ReplaceString(sMSG, sizeof(sMSG), "{HOSTNAME}", g_sServerName);
-	ReplaceString(sMSG, sizeof(sMSG), "{SERVER_IP}", g_sHostIP);
-	ReplaceString(sMSG, sizeof(sMSG), "{SERVER_PORT}", g_sHostPort);
-	ReplaceString(sMSG, sizeof(sMSG), "{TIMESTAMP}", szTimestamp);
-	
-	SendMessage(sMSG);
-	
-	ReplyToCommand(client, "Claim sent successfully!");
-	
-	return Plugin_Handled;
+    GetClientInfo(client, sName, sizeof(sName), clientAuth, sizeof(clientAuth), clientAuth64, sizeof(clientAuth64));
+    RemoveStringsFromServerName();
+    char sClaimMsg[512];
+    GetClaimMessage(sClaimMsg, sizeof(sClaimMsg));
+
+    char sBot[512];
+    g_cBotName.GetString(sBot, sizeof(sBot));
+
+    char sColor[8];
+    g_cColor2.GetString(sColor, sizeof(sColor));
+
+    char szTimestamp[64];
+    GetTimestamp(szTimestamp, sizeof(szTimestamp));
+
+    char sMSG[512] = CLAIM_MSG;
+    BuildClaimMessage(sMSG, sizeof(sMSG), sBot, sColor, sName, clientAuth, clientAuth64, sClaimMsg, szTimestamp);
+
+    SendMessage(sMSG);
+    ReplyToCommand(client, "Claim sent successfully!");
+
+    return Plugin_Handled;
 }
+
+void GetClientInfo(int client, char[] sName, int nameSize, char[] clientAuth, int authSize, char[] clientAuth64, int auth64Size)
+{
+    if (client == 0)
+    {
+        strcopy(sName, nameSize, "CONSOLE");
+    }
+    else
+    {
+        GetClientAuthId(client, AuthId_Steam2, clientAuth, authSize);
+        GetClientAuthId(client, AuthId_SteamID64, clientAuth64, auth64Size);
+        GetClientName(client, sName, nameSize);
+        Discord_EscapeString(sName, nameSize);
+    }
+}
+
+void RemoveStringsFromServerName()
+{
+    char sRemove[64];
+    g_cRemove.GetString(sRemove, sizeof(sRemove));
+    ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
+
+    g_cRemove2.GetString(sRemove, sizeof(sRemove));
+    ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
+
+    Discord_EscapeString(g_sServerName, sizeof(g_sServerName));
+}
+
+void GetClaimMessage(char[] sClaimMsg, int size)
+{
+    g_cClaimMsg.GetString(sClaimMsg, size);
+    Discord_EscapeString(sClaimMsg, size);
+}
+
+void BuildClaimMessage(char[] sMSG, int size, const char[] sBot, const char[] sColor, const char[] sName, const char[] clientAuth, const char[] clientAuth64, const char[] sClaimMsg, const char[] szTimestamp)
+{
+    ReplaceString(sMSG, size, "{BOTNAME}", sBot);
+    ReplaceString(sMSG, size, "{COLOR}", sColor);
+    ReplaceString(sMSG, size, "{ADMIN}", sName);
+    ReplaceString(sMSG, size, "{ADMIN_ID}", clientAuth);
+    ReplaceString(sMSG, size, "{ADMIN_ID64}", clientAuth64);
+    ReplaceString(sMSG, size, "{MSG}", sClaimMsg);
+    ReplaceString(sMSG, size, "{HOSTNAME}", g_sServerName);
+    ReplaceString(sMSG, size, "{SERVER_IP}", g_sHostIP);
+    ReplaceString(sMSG, size, "{SERVER_PORT}", g_sHostPort);
+    ReplaceString(sMSG, size, "{TIMESTAMP}", szTimestamp);
+}
+
 
 public void CallAdmin_OnReportPost(int client, int target, const char[] reason)
 {
-	char sColor[8];
-	if(!CheckCommandAccess(client, "sm_mute", ADMFLAG_CHAT, true))
-		g_cColor.GetString(sColor, sizeof(sColor));
-	else g_cColor3.GetString(sColor, sizeof(sColor));
-	
-	char sReason[(REASON_MAX_LENGTH + 1) * 2];
-	strcopy(sReason, sizeof(sReason), reason);
-	Discord_EscapeString(sReason, sizeof(sReason));
-	
-	char clientAuth[21];
-	char clientAuth64[32];
-	char clientName[(MAX_NAME_LENGTH + 1) * 2];
-	
-	if (client == REPORTER_CONSOLE)
-	{
-		strcopy(clientName, sizeof(clientName), "Server");
-		strcopy(clientAuth, sizeof(clientAuth), "CONSOLE");
-	}
-	else
-	{
-		GetClientAuthId(client, AuthId_Steam2, clientAuth, sizeof(clientAuth));
-		GetClientAuthId(client, AuthId_SteamID64, clientAuth64, sizeof(clientAuth64));
-		GetClientName(client, clientName, sizeof(clientName));
-		Discord_EscapeString(clientName, sizeof(clientName));
-	}
-	
-	char targetAuth[21];
-	char targetAuth64[32];
-	char targetName[(MAX_NAME_LENGTH + 1) * 2];
-	
-	GetClientAuthId(target, AuthId_Steam2, targetAuth, sizeof(targetAuth));
-	GetClientAuthId(target, AuthId_SteamID64, targetAuth64, sizeof(targetAuth64));
-	GetClientName(target, targetName, sizeof(targetName));
-	Discord_EscapeString(targetName, sizeof(targetName));
-	
-	char sRemove[64];
-	g_cRemove.GetString(sRemove, sizeof(sRemove));
-	if (!StrEqual(sRemove, ""))
-		ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
-	
-	g_cRemove2.GetString(sRemove, sizeof(sRemove));
-	if (!StrEqual(sRemove, ""))
-		ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
+    char sColor[8];
+    GetColor(client, sColor, sizeof(sColor));
 
-	
-	Discord_EscapeString(g_sServerName, sizeof(g_sServerName));
-	
-	char sMention[512];
-	g_cMention.GetString(sMention, sizeof(sMention));
-	
-	char sMention2[512];
-	g_cMention2.GetString(sMention2, sizeof(sMention2));
-	
-	char sBot[512];
-	g_cBotName.GetString(sBot, sizeof(sBot));
+    char sReason[(REASON_MAX_LENGTH + 1) * 2];
+    PrepareString(reason, sReason, sizeof(sReason));
 
-	int gettime = GetTime();
-	char szTimestamp[64]; IntToString(gettime, szTimestamp, sizeof(szTimestamp));
-	
-	char sMSG[4096] = REPORT_MSG;
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{BOTNAME}", sBot);
-	
-	// very ugly, do not use
-	if ((StrContains(sReason, "hack", false)!=-1) || (StrContains(sReason, "exploit", false)!=-1) || (StrContains(sReason, "grief", false)!=-1) || (StrContains(sReason, "ahk", false)!=-1) || (StrContains(sReason, "wall", false)!=-1) || (StrContains(sReason, "cheat", false)!=-1) || (StrContains(sReason, "aimbot", false)!=-1) || (StrContains(sReason, "grief", false)!=-1))
-		ReplaceString(sMSG, sizeof(sMSG), "{MENTION}", sMention);
-	else
-		ReplaceString(sMSG, sizeof(sMSG), "{MENTION}", sMention2);
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{COLOR}", sColor);
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{HOSTNAME}", g_sServerName);
-	ReplaceString(sMSG, sizeof(sMSG), "{SERVER_IP}", g_sHostIP);
-	ReplaceString(sMSG, sizeof(sMSG), "{SERVER_PORT}", g_sHostPort);
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{REASON}", sReason);
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{REPORTER_NAME}", clientName);
-	ReplaceString(sMSG, sizeof(sMSG), "{REPORTER_ID}", clientAuth);
-	ReplaceString(sMSG, sizeof(sMSG), "{REPORTER_ID64}", clientAuth64);
-	
-	ReplaceString(sMSG, sizeof(sMSG), "{TARGET_NAME}", targetName);
-	ReplaceString(sMSG, sizeof(sMSG), "{TARGET_ID}", targetAuth);
-	ReplaceString(sMSG, sizeof(sMSG), "{TARGET_ID64}", targetAuth64);
-	
-	char sRefer[16];
-	Format(sRefer, sizeof(sRefer), " # %s%s-%d%d", sSymbols[GetRandomInt(0, 25-1)], sSymbols[GetRandomInt(0, 25-1)], GetRandomInt(0, 9), GetRandomInt(0, 9));
-	ReplaceString(sMSG, sizeof(sMSG), "{REFER_ID}", sRefer);
+    char clientAuth[21], clientAuth64[32], clientName[(MAX_NAME_LENGTH + 1) * 2];
+    PrepareClientInfo(client, clientAuth, sizeof(clientAuth), clientAuth64, sizeof(clientAuth64), clientName, sizeof(clientName));
 
-	ReplaceString(sMSG, sizeof(sMSG), "{TIMESTAMP}", szTimestamp);
-	
-	SendMessage(sMSG);
+    char targetAuth[21], targetAuth64[32], targetName[(MAX_NAME_LENGTH + 1) * 2];
+    PrepareClientInfo(target, targetAuth, sizeof(targetAuth), targetAuth64, sizeof(targetAuth64), targetName, sizeof(targetName));
+
+    CleanServerName();
+
+    char sMention[512], sMention2[512], sBot[512];
+    GetStringValues(sMention, sizeof(sMention), sMention2, sizeof(sMention2), sBot, sizeof(sBot));
+
+    char szTimestamp[64];
+    GetTimestamp(szTimestamp, sizeof(szTimestamp));
+
+    char sMSG[4096] = REPORT_MSG;
+    BuildMessage(sMSG, sizeof(sMSG), sBot, sColor, sReason, clientName, clientAuth, clientAuth64, targetName, targetAuth, targetAuth64, szTimestamp);
+    SendMessage(sMSG);
 }
+
+void GetColor(int client, char[] sColor, int size)
+{
+    if(!CheckCommandAccess(client, "sm_mute", ADMFLAG_CHAT, true))
+        g_cColor.GetString(sColor, size);
+    else
+        g_cColor3.GetString(sColor, size);
+}
+
+void PrepareString(const char[] input, char[] output, int size)
+{
+    strcopy(output, size, input);
+    Discord_EscapeString(output, size);
+}
+
+void PrepareClientInfo(int client, char[] clientAuth, int authSize, char[] clientAuth64, int auth64Size, char[] clientName, int nameSize)
+{
+    if (client == REPORTER_CONSOLE)
+    {
+        strcopy(clientName, nameSize, "Server");
+        strcopy(clientAuth, authSize, "CONSOLE");
+    }
+    else
+    {
+        GetClientAuthId(client, AuthId_Steam2, clientAuth, authSize);
+        GetClientAuthId(client, AuthId_SteamID64, clientAuth64, auth64Size);
+        GetClientName(client, clientName, nameSize);
+        Discord_EscapeString(clientName, nameSize);
+    }
+}
+
+void CleanServerName()
+{
+    char sRemove[64];
+    for (int i = 1; i <= 2; i++)
+    {
+        if (i == 1)
+            g_cRemove.GetString(sRemove, sizeof(sRemove));
+        else
+            g_cRemove2.GetString(sRemove, sizeof(sRemove));
+
+        if (!StrEqual(sRemove, ""))
+            ReplaceString(g_sServerName, sizeof(g_sServerName), sRemove, "");
+    }
+
+    Discord_EscapeString(g_sServerName, sizeof(g_sServerName));
+}
+
+void GetStringValues(char[] sMention, int mentionSize, char[] sMention2, int mention2Size, char[] sBot, int botSize)
+{
+    g_cMention.GetString(sMention, mentionSize);
+    g_cMention2.GetString(sMention2, mention2Size);
+    g_cBotName.GetString(sBot, botSize);
+}
+
+void GetTimestamp(char[] szTimestamp, int size)
+{
+    int gettime = GetTime();
+    IntToString(gettime, szTimestamp, size);
+}
+
+void BuildMessage(char[] sMSG, int size, const char[] sBot, const char[] sColor, const char[] sReason, const char[] clientName, const char[] clientAuth, const char[] clientAuth64, const char[] targetName, const char[] targetAuth, const char[] targetAuth64, const char[] szTimestamp)
+{
+    ReplaceString(sMSG, size, "{BOTNAME}", sBot);
+    ReplaceString(sMSG, size, "{COLOR}", sColor);
+    ReplaceString(sMSG, size, "{REASON}", sReason);
+    ReplaceString(sMSG, size, "{REPORTER_NAME}", clientName);
+    ReplaceString(sMSG, size, "{REPORTER_ID}", clientAuth);
+    ReplaceString(sMSG, size, "{REPORTER_ID64}", clientAuth64);
+    ReplaceString(sMSG, size, "{TARGET_NAME}", targetName);
+    ReplaceString(sMSG, size, "{TARGET_ID}", targetAuth);
+    ReplaceString(sMSG, size, "{TARGET_ID64}", targetAuth64);
+    ReplaceString(sMSG, size, "{HOSTNAME}", g_sServerName);
+    ReplaceString(sMSG, size, "{SERVER_IP}", g_sHostIP);
+    ReplaceString(sMSG, size, "{SERVER_PORT}", g_sHostPort);
+
+    // If the report reason contains specific keywords, use sMention; otherwise, use sMention2
+if (ContainsAnyKeyword(sReason, keywords, sizeof(keywords) / sizeof(keywords[0]), false))
+        ReplaceString(sMSG, size, "{MENTION}", sMention);
+    else
+        ReplaceString(sMSG, size, "{MENTION}", sMention2);
+
+    char sRefer[16];
+    Format(sRefer, sizeof(sRefer), " # %s%s-%d%d", sSymbols[GetRandomInt(0, 25 - 1)], sSymbols[GetRandomInt(0, 25 - 1)], GetRandomInt(0, 9), GetRandomInt(0, 9));
+    ReplaceString(sMSG, size, "{REFER_ID}", sRefer);
+    ReplaceString(sMSG, size, "{TIMESTAMP}", szTimestamp);
+}
+
+bool ContainsAnyKeyword(const char[] str, const char[][] keywords, int numKeywords, bool caseSensitive)
+{
+    for (int i = 0; i < numKeywords; i++)
+    {
+        if (StrContains(str, keywords[i], caseSensitive) != -1)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 SendMessage(char[] sMessage)
 {
