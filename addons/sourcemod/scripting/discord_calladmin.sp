@@ -4,7 +4,7 @@
 
 #define PLUGIN_VERSION "1.5"
 
-#define REPORT_MSG "{\"username\":\"{BOTNAME}\", \"content\":\"{MENTION}\",\"attachments\": [{\"color\": \"{COLOR}\",\"title\": \"{HOSTNAME} (steam://connect/{SERVER_IP}:{SERVER_PORT}){REFER_ID}\",\"fields\": [{\"title\": \"Reason\",\"value\": \"{REASON}\",\"short\": true},{\"title\": \"Reporter\",\"value\": \"{REPORTER_NAME} ([{REPORTER_ID}](https://steamcommunity.com/profiles/{REPORTER_ID64}))\",\"short\": true},{\"title\": \"Target\",\"value\": \"{TARGET_NAME} ([{TARGET_ID}](https://steamcommunity.com/profiles/{TARGET_ID64}))\",\"short\": true}],\"footer\": \"DiscordWatch\",\"ts\": \"{TIMESTAMP}\"}]}"
+#define REPORT_MSG "{\"username\":\"{BOTNAME}\", \"content\":\"{MENTION}\", \"embeds\": [{\"color\": \"{COLOR}\", \"title\": \"{HOSTNAME} (steam://connect/{SERVER_IP}:{SERVER_PORT}){REFER_ID}\", \"fields\": [{\"name\": \"Reason\", \"value\": \"{REASON}\", \"inline\": true}, {\"name\": \"Reporter\", \"value\": \"{REPORTER_NAME} ([{REPORTER_ID}](https://steamcommunity.com/profiles/{REPORTER_ID64}))\", \"inline\": true}, {\"name\": \"Target\", \"value\": \"{TARGET_NAME} ([{TARGET_ID}](https://steamcommunity.com/profiles/{TARGET_ID64}))\", \"inline\": true}], \"footer\": {\"text\": \"DiscordWatch\"}, \"timestamp\": \"{TIMESTAMP}\"}], \"components\": [{\"type\": 1, \"components\": [{\"type\": 2, \"label\": \"Banlist\", \"style\": 5, \"url\": \"{BANLIST_URL}\"}]}]}"
 #define CLAIM_MSG "{\"username\":\"{BOTNAME}\", \"content\":\"{MSG}\",\"attachments\": [{\"color\": \"{COLOR}\",\"title\": \"{HOSTNAME} (steam://connect/{SERVER_IP}:{SERVER_PORT})\",\"fields\": [{\"title\": \"Admin\",\"value\": \"{ADMIN}\",\"short\": false},{\"title\": \"Steam ID\",\"value\": \"[{ADMIN_ID}](https://steamcommunity.com/profiles/{ADMIN_ID64})\",\"short\": false}],\"footer\": \"DiscordWatch\",\"ts\": \"{TIMESTAMP}\"}]}"
 
 char sSymbols[25][1] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
@@ -257,6 +257,9 @@ void GetTimestamp(char[] szTimestamp, int size)
 
 void BuildMessage(char[] sMSG, int size, const char[] sBot, const char[] sColor, const char[] sReason, const char[] clientName, const char[] clientAuth, const char[] clientAuth64, const char[] targetName, const char[] targetAuth, const char[] targetAuth64, const char[] szTimestamp)
 {
+    char sBanlistURL[256];
+    Format(sBanlistURL, sizeof(sBanlistURL), "https://bans.snksrv.com/index.php?p=banlist&searchText=%s", targetAuth);
+
     ReplaceString(sMSG, size, "{BOTNAME}", sBot);
     ReplaceString(sMSG, size, "{COLOR}", sColor);
     ReplaceString(sMSG, size, "{REASON}", sReason);
@@ -269,6 +272,7 @@ void BuildMessage(char[] sMSG, int size, const char[] sBot, const char[] sColor,
     ReplaceString(sMSG, size, "{HOSTNAME}", g_sServerName);
     ReplaceString(sMSG, size, "{SERVER_IP}", g_sHostIP);
     ReplaceString(sMSG, size, "{SERVER_PORT}", g_sHostPort);
+    ReplaceString(sMSG, size, "{BANLIST_URL}", sBanlistURL);
 
     // If the report reason contains specific keywords, use sMention; otherwise, use sMention2
 if (ContainsAnyKeyword(sReason, keywords, sizeof(keywords) / sizeof(keywords[0]), false))
